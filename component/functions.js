@@ -1,0 +1,11 @@
+export const statusdatecalculatepms = (date) => {
+    const startRound = new Date(date); // กำหนดวันที่ที่ต้องการ
+    const month = startRound.getMonth(); // เดือน (0 = มกราคม, 11 = ธันวาคม)
+    const year = startRound.getFullYear(); // ปี
+    if (month >= 1 && month <= 6) {
+        return `1-${year}`; // กุมภาพันธ์ (1) ถึง กรกฎาคม (6)
+    } else {
+        const evaluationYear = month === 0 ? year - 1 : year; // สิงหาคม (7) ถึง มกราคม (0) (มกราคมเป็นของปีที่แล้ว)
+        return`2-${evaluationYear}`;
+    }
+}
