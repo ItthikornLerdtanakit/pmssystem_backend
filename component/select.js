@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import moment from 'moment-timezone';
 
 import db from './connectdatabase.js';
+import { get_period } from './functions.js';
 
 configDotenv();
 
@@ -31,16 +32,42 @@ export const get_event = async () => {
     return resultformatdate;
 }
 
-export const get_parttype_pmssystem = async () => {
-    const select = 'select * from parttypes';
-    const [result] = await db.connectdatabase_pmssystem.query(select);
-    return result;
+export const get_parttype_pmssystem = async (level) => {
+    if (level === 'level_5' || level === 'level_4' || level === 'level_3') {
+        const select = 'select * from parttypes where parttype_statusheadof = ?';
+        const [result] = await db.connectdatabase_pmssystem.query(select, [1]);
+        return result;
+    } else if (level === 'level_2') {
+        const select = 'select * from parttypes where parttype_statusmanager = ?';
+        const [result] = await db.connectdatabase_pmssystem.query(select, [1]);
+        return result;
+    } else if (level === 'level_1') {
+        const select = 'select * from parttypes where parttype_statusstaff = ?';
+        const [result] = await db.connectdatabase_pmssystem.query(select, [1]);
+        return result;
+    }
 }
 
-export const get_part_pmssystem = async () => {
-    const select = 'select * from parts';
-    const [result] = await db.connectdatabase_pmssystem.query(select);
-    return result;
+export const get_part_pmssystem = async (level) => {
+    let evaluate = 'fail';
+    if (['level_5','level_4','level_3'].includes(level)) evaluate = 'Head Of Evaluate Manager';
+    else if (level === 'level_2') evaluate = 'Manager Evaluate Staff';
+    else if (level === 'level_1') evaluate = 'Evaluate Self';
+    if (evaluate === 'fail') {
+        return evaluate;
+    } else {
+        const select_event = 'select event_startdate, event_enddate from events where event_statusdate = ? and event_evaluate = ?';
+        const [check_open_pms] = await db.connectdatabase_pmssystem.query(select_event, ['2-2024', evaluate]);
+        const now = new Date();
+        const isOpen = now >= new Date(check_open_pms[0].event_startdate) && now <= new Date(check_open_pms[0].event_enddate);
+        if (isOpen) {
+            const select_part = 'select * from parts';
+            const [result] = await db.connectdatabase_pmssystem.query(select_part);
+            return result;
+        } else {
+            return 'fail';
+        }
+    }
 }
 
 export const get_result_evaluation = async (item, type) => {
@@ -159,13 +186,13 @@ export const get_staff_sumary = async (item) => {
 }
 
 const get_evaluation_score_part1 = async (id, type) => {
-    const select = 'select sum((part_weight * part_rating) / cast(100 as decimal(10,2))) as score, part_status from part1 where employee_id = ? and part_type = ? group by part_status';
-    const [result] = await db.connectdatabase_pmssystem.query(select, [id, type]);
+    const select = 'select sum((part_weight * part_rating) / cast(100 as decimal(10,2))) as score, part_status from part1 where employee_id = ? and part_type = ? and part_status = ? group by part_status';
+    const [result] = await db.connectdatabase_pmssystem.query(select, [id, type, get_period()]);
     return result;
 }
 
 const get_evaluation_score_part2 = async (id, type) => {
-    const select = 'select sum((part_weight * part_rating) / cast(100 as decimal(10,2))) as score, part_status from part2 where employee_id = ? and part_type = ? group by part_status';
-    const [result] = await db.connectdatabase_pmssystem.query(select, [id, type]);
+    const select = 'select sum((part_weight * part_rating) / cast(100 as decimal(10,2))) as score, part_status from part2 where employee_id = ? and part_type = ? and part_status = ? group by part_status';
+    const [result] = await db.connectdatabase_pmssystem.query(select, [id, type, get_period()]);
     return result;
 }

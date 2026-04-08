@@ -77,11 +77,12 @@ app.get(process.env.GET_EVENT, async (_, res) => {
     }
 });
 
-app.get(process.env.GET_QUESTION_EVALUATION, async (_, res) => {
+app.get(process.env.GET_QUESTION_EVALUATION, async (req, res) => {
     try {
-        const result_parttype = await get_parttype_pmssystem();
-        const result_part = await get_part_pmssystem();
-        res.send({ result_parttype, result_part });
+        const result_parttype = await get_parttype_pmssystem(req.query.level);
+        const result_part = await get_part_pmssystem(req.query.level);
+        const final_part = result_parttype.length ? result_part : 'fail';
+        res.send({ result_parttype, final_part });
     } catch (error) {
         console.error(error);
     }
